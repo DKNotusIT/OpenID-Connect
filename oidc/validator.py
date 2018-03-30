@@ -4,7 +4,7 @@ from jwkest.jws import JWS
 from jwkest.jwk import KEYS
 from requests import request
 from jwkest import BadSignature
-from app.infrastructure.oidc.helpers.oidc import base64_urldecode
+from .helpers.oidc import base64_urldecode
 
 
 class JwtValidatorException(Exception):
