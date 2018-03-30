@@ -3,9 +3,9 @@ import urllib.request as urllib2
 from flask import render_template, session, redirect, request
 from jwkest import BadSignature
 from urllib.parse import urlparse
-from app.infrastructure.oidc.client import Client
-from app.infrastructure.oidc.helpers.oidc import decode_token, generate_random_string
-from app.infrastructure.oidc.validator import JwtValidator
+from .client import Client
+from .helpers.oidc import decode_token, generate_random_string
+from .validator import JwtValidator
 
 
 class UserSession:
