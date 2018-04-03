@@ -2,7 +2,7 @@ import json
 import ssl
 import urllib.parse
 import urllib.request
-from app.infrastructure.oidc.helpers.oidc import generate_random_string
+from .helpers.oidc import generate_random_string
 
 
 class Client:
