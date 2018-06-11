@@ -120,9 +120,10 @@ class Client:
         raw_data = token_response.read()
         encoding = token_response.info().get_content_charset("utf8")  # JSON default
         token_response = json.loads(raw_data.decode(encoding))
+
         return token_response
 
-    def get_user_info(self, token):
+    def get_user_info(self, token, client_name):
         """
         Request data from userinfo endpoint
         :param token: access_token retrieved from token endpoint
@@ -139,6 +140,13 @@ class Client:
         raw_data = user_info.read()
         encoding = user_info.info().get_content_charset("utf8")  # JSON default
         user_info = json.loads(raw_data.decode(encoding))
+
+        if client_name:
+            if client_name in user_info['clients']:
+                ...
+            else:
+                raise Exception('Invalid Permission')
+
         return user_info
 
     def logout(self, token):

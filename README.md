@@ -22,7 +22,7 @@ orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor in
   "revocation_endpoint": "https://auth.domainname.pl/revoke",
   "jwks_uri": "https://auth.domainname.pl/jwks",
   "issuer": "https://auth.domainname.pl",
-  "base_url": "https://tortuga.domainname.pl/",
+  "base_url": "https://ourapp.domainname.pl/",
   "discovery_url": "https://auth.domainname.pl/.well-known/openid-configuration",
   "userinfo_endpoint": "https://auth.domainname.pl/userinfo"
 ```

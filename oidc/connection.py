@@ -21,12 +21,12 @@ class UserSession:
     api_response = None
 
 
-def open_id_connect(tortuga):
-    namespace = tortuga.namespace
-    _session_store = tortuga.session_store
-    _config = tortuga.oidc_config
+def open_id_connect(service):
+    namespace = service.namespace
+    _session_store = service.session_store
+    _config = service.oidc_config
     _client = Client(_config)
-    _app = tortuga.app
+    _app = service.app
     if "base_url" in _config:
         _base_url = _config["base_url"]
     else:
