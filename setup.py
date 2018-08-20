@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='oidc_lib',
-    version='0.3.0',
+    version='0.0.2',
     description='A simple library to connect with OpenID',
     url='https://gitlab.atm.dknotus.pl:8888/notus/oidclib',
     author='Notus Finanse S.A',
@@ -14,7 +14,7 @@ setup(
     ],
     keywords='OpenID library',
     packages=find_packages(),
-    install_requires=['flask', 'pyjwkest', 'pyyaml', 'requests'],
+    install_requires=['flask', 'pyjwkest', 'pyyaml'],
     python_requires='>=3.5.2',
 
 )
