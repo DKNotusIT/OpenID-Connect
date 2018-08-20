@@ -19,18 +19,14 @@ def decode_token(token):
     :raise: Wrong JWT format
     """
     if token and len(token.split('.')) == 3:
-        header = token.split('.')[0]
-        header += '=' * (4 - len(header) % 4)
-
-        payload = token.split('.')[1]
-        payload += '=' * (4 - len(payload) % 4)
+        header, payload, signature = token.split('.')
 
     else:
         raise Exception('This is not jwt token!')
 
     return (
-        base64.b64decode(header).decode('utf-8'),
-        base64.b64decode(payload).decode('utf-8')
+        base64_url_decode(header).decode('utf-8'),
+        base64_url_decode(payload).decode('utf-8')
     )
 
 

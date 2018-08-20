@@ -3,8 +3,7 @@ from time import time
 from jwkest.jws import JWS
 from jwkest.jwk import KEYS
 from requests import request
-from jwkest import BadSignature
-from .helpers.oidc import base64_url_decode
+from .helpers.oidc import decode_token
 
 
 class JwtValidatorException(Exception):
@@ -23,15 +22,7 @@ class JwtValidator:
         self.client_id = config['client_id']
 
     def validate(self, jwt, iss, aud):
-        parts = jwt.split('.')
-        if len(parts) != 3:
-            raise BadSignature('Invalid JWT. Only JWS supported.')
-
-        raw_data = base64_url_decode(parts[0])
-        header = json.loads(raw_data.decode('utf8'))
-        raw_data = base64_url_decode(parts[1])
-        payload = json.loads(raw_data.decode('utf8'))
-
+        header, payload = (json.loads(x) for x in decode_token(jwt))
         if 'iss' not in payload or iss != payload['iss']:
             raise JwtValidatorException('Invalid issuer')
         if 'aud' not in payload or aud != payload['aud']:
@@ -43,9 +34,7 @@ class JwtValidator:
         try:
             jws.verify_compact(jwt, self.jwks)
         except Exception as e:
-            print('Exception validating signature')
             raise JwtValidatorException(e)
-        print('Successfully validated signature.')
 
     def get_jwks_data(self):
         req = request(
