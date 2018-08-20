@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='oidc_lib',
-    version='1.0.0',
+    version='0.3.0',
     description='A simple library to connect with OpenID',
     url='https://gitlab.atm.dknotus.pl:8888/notus/oidclib',
     author='Notus Finanse S.A',
