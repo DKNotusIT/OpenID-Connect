@@ -1,5 +1,5 @@
 import logging
-import urllib.request as urllib2
+import requests
 from flask import render_template, session, redirect, request
 from jwkest import BadSignature
 from urllib.parse import urlparse
@@ -27,16 +27,16 @@ def open_id_connect(service):
     _config = service.oidc_config
     _client = Client(_config)
     _app = service.app
-    if "base_url" in _config:
-        _base_url = _config["base_url"]
+    if 'base_url' in _config:
+        _base_url = _config['base_url']
     else:
-        _base_url = ""
+        _base_url = ''
 
     # load the jwk set.
-    if "jwks_uri" in _config:
+    if 'jwks_uri' in _config:
         _jwt_validator = JwtValidator(_config)
     else:
-        logging.info("Found no url to JWK set, will not be able to validate JWT signature.")
+        logging.info('Found no url to JWK set, will not be able to validate JWT signature.')
 
     def redirect_with_baseurl(path):
         return redirect(_base_url + path)
@@ -54,21 +54,23 @@ def open_id_connect(service):
 
         if _app:
             user = None
-            if "session_id" in session:
-                user = _session_store.get(session["session_id"])
-            return render_template("index.html",
-                                   server_name=urlparse(_config["authorization_endpoint"]).netloc,
-                                   session=user,
-                                   error=message)
+            if 'session_id' in session:
+                user = _session_store.get(session['session_id'])
+            return render_template(
+                'index.html',
+                server_name=urlparse(_config['authorization_endpoint']).netloc,
+                session=user,
+                error=message
+            )
 
-    @_app.route("/" + namespace + "/test")
+    @_app.route('/' + namespace + '/test')
     def home():
         """
             :return: the index page with the tokens, if set.
             """
         user = None
-        if "session_id" in session:
-            user = _session_store.get(session["session_id"])
+        if 'session_id' in session:
+            user = _session_store.get(session['session_id'])
         if user:
             if user.id_token:
                 user.id_token_json = decode_token(user.id_token)
@@ -78,11 +80,13 @@ def open_id_connect(service):
                 except Exception:
                     pass
 
-        return render_template("index.html",
-                               server_name=urlparse(_config["authorization_endpoint"]).netloc,
-                               session=user)
+        return render_template(
+            'index.html',
+            server_name=urlparse(_config['authorization_endpoint']).netloc,
+            session=user
+        )
 
-    @_app.route("/" + namespace + "/login")
+    @_app.route('/' + namespace + '/login')
     def start_code_flow():
         """
         :return: redirects to the authorization server with the appropriate parameters set.
@@ -90,136 +94,143 @@ def open_id_connect(service):
         login_url = _client.get_auth_req_url(session)
         return redirect(login_url)
 
-    @_app.route("/" + namespace + "/logout")
+    @_app.route('/' + namespace + '/logout')
     def logout():
         """
         Logout clears the session, along with the tokens
         :return: redirects to /
         """
-        user = _session_store.get(session["session_id"])
-        if "session_id" in session:
-            del _session_store[session["session_id"]]
+        user = _session_store.get(session['session_id'])
+        if 'session_id' in session:
+            del _session_store[session['session_id']]
         session.clear()
-        if "logout_endpoint" in _config:
-            try:
-                _client.logout(user.id_token)
-            except Exception as e:
-                return create_error("Could not logout", e)
+        if 'logout_endpoint' in _config:
+            if not _client.logout(user.id_token):
+                return create_error('Could not logout')
 
-        return redirect_with_baseurl("/" + namespace + "/test")
+        return redirect_with_baseurl('/' + namespace + '/test')
 
-    @_app.route("/" + namespace + "/refresh")
+    @_app.route('/' + namespace + '/refresh')
     def refresh():
         """
         Refreshes the access token using the refresh token
         :return: redirects to /
         """
-        user = _session_store.get(session["session_id"])
-        try:
-            token_data = _client.refresh(user.refresh_token)
-        except Exception as e:
-            return create_error("Could not refresh Access Token", e)
-        user.access_token = token_data["access_token"]
-        user.refresh_token = token_data["refresh_token"]
-        user.id_token = token_data["id_token"]
-        return redirect_with_baseurl("/" + namespace + "/test")
+        user = _session_store.get(session['session_id'])
+        token_data = _client.refresh(user.refresh_token)
+        if not token_data:
+            return create_error('Could not refresh Access Token')
 
-    @_app.route("/" + namespace + "/revoke")
+        user.access_token = token_data['access_token']
+        user.refresh_token = token_data['refresh_token']
+        user.id_token = token_data['id_token']
+        return redirect_with_baseurl('/' + namespace + '/test')
+
+    @_app.route('/' + namespace + '/revoke')
     def revoke():
         """
         Revokes the access and refresh token and clears the sessions
         :return: redirects to /
         """
-        if "session_id" in session:
-            user = _session_store.get(session["session_id"])
+        if 'session_id' in session:
+            user = _session_store.get(session['session_id'])
             if not user:
-                redirect_with_baseurl("/")
+                redirect_with_baseurl('/')
 
             if user.refresh_token:
-                try:
-                    _client.revoke(user.refresh_token, "refresh_token")
-                except urllib2.URLError as e:
-                    return create_error("Could not revoke refresh token", e)
+                if not _client.revoke(user.refresh_token, 'refresh_token'):
+                    return create_error('Could not revoke refresh token')
+
                 user.refresh_token = None
 
-        return redirect_with_baseurl("/")
+        return redirect_with_baseurl('/')
 
-    @_app.route("/call-api")
+    @_app.route('/call-api')
     def call_api():
         """
         Call an api using the Access Token
-        :return: the index template with the data from the api in the parameter "data"
+        :return: the index template with the data from the api in the 'data'
         """
-        if "session_id" in session:
-            user = _session_store.get(session["session_id"])
+        if 'session_id' in session:
+            user = _session_store.get(session['session_id'])
             if not user:
-                return redirect_with_baseurl("/" + namespace + "/test")
-            if "api_endpoint" in _config:
+                return redirect_with_baseurl('/' + namespace + '/test')
+            if 'api_endpoint' in _config:
                 user.api_response = None
                 if user.access_token:
-                    try:
-                        request = urllib2.Request(_config["api_endpoint"])
-                        request.add_header("Authorization", "Bearer %s" % user.access_token)
-                        response = urllib2.urlopen(request)
-                        user.api_response = {"code": response.code, "data": response.read()}
-                    except urllib2.HTTPError as e:
-                        user.api_response = {"code": e.code, "data": e.read()}
+                    req = requests.get(
+                        _config['api_endpoint'],
+                        headers={
+                            'Authorization': 'Bearer {}'.format(
+                                user.access_token
+                            )
+                        }
+                    )
+
+                    user.api_response = {
+                        'code': req.status_code,
+                        'data': req.json()
+                    }
                 else:
                     user.api_response = None
-                    logging.info("No access token in session")
+                    logging.info('No access token in session')
             else:
                 user.api_response = None
-                logging.info("No API endpoint configured")
+                logging.info('No API endpoint configured')
 
-        return redirect_with_baseurl("/" + namespace + "/test")
+        return redirect_with_baseurl('/' + namespace + '/test')
 
-    @_app.route("/" + namespace + "/callback")
+    @_app.route('/' + namespace + '/callback')
     def oauth_callback():
         """
         Called when the resource owner is returning from the authorization server
         :return:redirect to / with user info stored in the session.
         """
-        if "state" not in session or session["state"] != request.args["state"]:
-            return create_error("Missing or invalid state")
+        if 'state' not in session or session['state'] != request.args['state']:
+            return create_error('Missing or invalid state')
 
-        if "code" not in request.args:
-            return create_error("No code in response")
+        if 'code' not in request.args:
+            return create_error('No code in response')
 
-        try:
-            token_data = _client.get_token(request.args["code"])
-        except Exception as e:
-            return create_error("Could not fetch token(s)", e)
-        session.pop("state", None)
+        token_data = _client.get_token(request.args['code'])
+        if not token_data:
+            return create_error('Could not fetch token(s)')
+        session.pop('state', None)
 
         # Store in basic server session, since flask session use cookie for storage
         user = UserSession()
 
-        if "access_token" in token_data:
-            user.access_token = token_data["access_token"]
+        if 'access_token' in token_data:
+            user.access_token = token_data['access_token']
             user_data = _client.get_user_info(user.access_token)
-            user.name = user_data["nickname"]
+            user.name = user_data['nickname']
 
-        if "id_token" in token_data:
+        if 'id_token' in token_data:
             # validate JWS; signature, aud and iss.
             # Token type, access token, ref-token and JWT
-            if "issuer" not in _config:
-                return create_error("Could not validate token: no issuer configured")
+            if 'issuer' not in _config:
+                return create_error('Could not validate token: no issuer configured')
 
             if not _jwt_validator:
-                return create_error("Could not validate token: no jwks_uri configured")
+                return create_error('Could not validate token: no jwks_uri configured')
             try:
-                _jwt_validator.validate(token_data["id_token"], _config["issuer"], _config["client_id"])
+                _jwt_validator.validate(
+                    token_data['id_token'],
+                    _config['issuer'],
+                    _config['client_id']
+                )
+
             except BadSignature as bs:
-                return create_error("Could not validate token: %s" % bs.message)
+                return create_error('Could not validate token: {}'.format(str(bs)))
             except Exception as ve:
-                return create_error("Unexpected exception: %s" % ve.message)
+                return create_error('Unexpected exception: {}'.format(ve))
 
-            user.id_token = token_data["id_token"]
+            user.id_token = token_data['id_token']
 
-        if "refresh_token" in token_data:
-            user.refresh_token = token_data["refresh_token"]
+        if 'refresh_token' in token_data:
+            user.refresh_token = token_data['refresh_token']
 
-        session["session_id"] = generate_random_string()
-        _session_store[session["session_id"]] = user
+        session['session_id'] = generate_random_string()
+        _session_store[session['session_id']] = user
 
-        return redirect_with_baseurl("/" + namespace + "/test")
+        return redirect_with_baseurl('/' + namespace + '/test')
