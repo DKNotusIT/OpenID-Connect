@@ -13,7 +13,10 @@ class JwtValidatorException(Exception):
 
 class JwtValidator:
     def __init__(self, config):
-        self.verify_ssl_server = "verify_ssl_server" in config and config["verify_ssl_server"]
+        self.verify_ssl_server = (
+                "verify_ssl_server" in config and
+                config["verify_ssl_server"]
+        )
         self.jwks_url = config["jwks_uri"]
         self.jwks = self.load_keys()
         self.issuer = config["issuer"]
