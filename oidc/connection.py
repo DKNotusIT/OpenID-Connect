@@ -192,10 +192,9 @@ def open_id_connect(service):
         if 'code' not in request.args:
             return create_error('No code in response')
 
-        try:
-            token_data = _client.get_token(request.args['code'])
-        except Exception as e:
-            return create_error('Could not fetch token(s)', e)
+        token_data = _client.get_token(request.args['code'])
+        if not token_data:
+            return create_error('Could not fetch token(s)')
         session.pop('state', None)
 
         # Store in basic server session, since flask session use cookie for storage
@@ -218,7 +217,8 @@ def open_id_connect(service):
                 _jwt_validator.validate(
                     token_data['id_token'],
                     _config['issuer'],
-                    _config['client_id'])
+                    _config['client_id']
+                )
 
             except BadSignature as bs:
                 return create_error('Could not validate token: {}'.format(str(bs)))

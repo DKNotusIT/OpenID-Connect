@@ -77,7 +77,8 @@ class Client:
         req = requests.get(
             self.config['token_endpoint'],
             params=data,
-            verify=self.check_hostname)
+            verify=self.check_hostname
+        )
 
         return req.json() if req.status_code // 100 == 2 else False
 
@@ -88,11 +89,13 @@ class Client:
         """
         state = generate_random_string()
         session['state'] = state
-        request_args = {'scope': self.config['scope'],
-                        'response_type': self.config['response_type'],
-                        'client_id': self.config['client_id'],
-                        'state': state,
-                        'redirect_uri': self.config['redirect_uri']}
+        request_args = {
+            'scope': self.config['scope'],
+            'response_type': self.config['response_type'],
+            'client_id': self.config['client_id'],
+            'state': state,
+            'redirect_uri': self.config['redirect_uri']
+        }
 
         login_url = '{}?{}'.format(
             self.config['authorization_endpoint'],
@@ -107,17 +110,20 @@ class Client:
         :param code: The authorization code to use when getting tokens
         :return the json response containing the tokens
         """
-        data = {'client_id': self.config['client_id'],
-                'client_secret': self.config['client_secret'],
-                'code': code,
-                'redirect_uri': self.config['redirect_uri'],
-                'grant_type': 'authorization_code'}
+        data = {
+           'client_id': self.config['client_id'],
+           'client_secret': self.config['client_secret'],
+           'code': code,
+           'redirect_uri': self.config['redirect_uri'],
+           'grant_type': 'authorization_code'
+        }
 
         # Exchange code for tokens
         req = requests.get(
             self.config['token_endpoint'],
             params=data,
-            verify=self.check_hostname)
+            verify=self.check_hostname
+        )
 
         return req.json() if req.status_code // 100 == 2 else False
 
@@ -139,10 +145,10 @@ class Client:
             verify=self.check_hostname
         )
 
-        if not client_name not in user_info['clients']:
+        if not client_name not in user_info.json()['clients']:
             return False
 
-        return user_info_url == 200
+        return user_info.status_code == 200
 
     def logout(self, token):
         """
@@ -158,6 +164,7 @@ class Client:
         req = requests.get(
             self.config['logout_endpoint'],
             params=data,
-            verify=self.check_hostname)
+            verify=self.check_hostname
+        )
 
         return req.status_code // 100 == 2
