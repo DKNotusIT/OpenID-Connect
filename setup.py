@@ -14,7 +14,7 @@ setup(
     ],
     keywords='OpenID library',
     packages=find_packages(),
-    install_requires=['flask', 'pyjwkest', 'pyyaml'],
+    install_requires=['flask', 'pyjwkest', 'pyyaml', 'requests'],
     python_requires='>=3.5.2',
 
 )

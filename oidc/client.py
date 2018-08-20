@@ -1,89 +1,85 @@
-import json
 import requests
-import ssl
 import urllib.parse
-import urllib.request
 from .helpers.oidc import generate_random_string
 
 
 class Client:
     def __init__(self, config):
-        self.ctx = ssl.create_default_context()
         self.config = config
 
         # Allow untrusted connection for testing purpose
-        if "verify_ssl_certificate" in self.config and not self.config["verify_ssl_certificate"]:
-            self.ctx.check_hostname = False
-            self.ctx.verify_mode = ssl.CERT_NONE
+        if ('verify_ssl_certificate' in self.config and
+                not self.config['verify_ssl_certificate']):
+            self.check_hostname = False
 
         # Configure automatically all endpoints if discovery is possible
-        if "discovery_url" in self.config:
-            discovery = urllib.request.urlopen(self.config["discovery_url"], context=self.ctx)
-            raw_data = discovery.read()
-            encoding = discovery.info().get_content_charset("utf8")  # JSON default
-            self.config.update(json.loads(raw_data.decode(encoding)))
+        if 'discovery_url' in self.config:
+            discovery = requests.get(
+                self.config['discovery_url'],
+                verify=self.check_hostname
+            )
+            self.config.update(discovery.json())
         else:
-            print("No discovery url configured, all endpoints needs to be configured manually")
+            print('No discovery url configured, all endpoints needs to be configured manually')
 
         # Mandatory settings
-        if "authorization_endpoint" not in self.config:
-            raise Exception("authorization_endpoint not set.")
-        if "token_endpoint" not in self.config:
-            raise Exception("token_endpoint not set.")
-        if "client_id" not in self.config:
-            raise Exception("client_id not set.")
-        if "client_secret" not in self.config:
-            raise Exception("client_secret not set.")
-        if "redirect_uri" not in self.config:
-            raise Exception("redirect_uri not set.")
+        if 'authorization_endpoint' not in self.config:
+            raise Exception('authorization_endpoint not set.')
+        if 'token_endpoint' not in self.config:
+            raise Exception('token_endpoint not set.')
+        if 'client_id' not in self.config:
+            raise Exception('client_id not set.')
+        if 'client_secret' not in self.config:
+            raise Exception('client_secret not set.')
+        if 'redirect_uri' not in self.config:
+            raise Exception('redirect_uri not set.')
 
-        if "scope" not in self.config:
-            self.config["scope"] = "openid"
+        if 'scope' not in self.config:
+            self.config['scope'] = 'openid'
 
     def revoke(self, token, token_type):
         """
         Revoke the token
         :param token_type: type of token to revoke (access_token or refresh_token)
         :param token: the token to revoke
-        :raises: raises error when http call fails
+        :return: returns false when http call fails
         """
-        if "revocation_endpoint" not in self.config:
-            raise Exception("No revocation endpoint set")
+        if 'revocation_endpoint' not in self.config:
+            raise Exception('No revocation endpoint set')
 
-        try:
-            revoke_request = urllib.request.Request(self.config["revocation_endpoint"])
-            data = {
-                "token": token,
-                "token_type_hint": token_type,
-                "client_id": self.config["client_id"],
-                "client_secret": self.config["client_secret"]
-            }
-            string_data = urllib.parse.urlencode(data).encode("utf-8")
-            urllib.request.urlopen(revoke_request, string_data, context=self.ctx)
-        except urllib.request.URLError as te:
-            raise te
+        data = {
+            'token': token,
+            'token_type_hint': token_type,
+            'client_id': self.config['client_id'],
+            'client_secret': self.config['client_secret']
+        }
+
+        req = requests.get(
+            self.config['revocation_endpoint'],
+            params=data,
+            verify=self.check_hostname)
+
+        return req.status_code // 100 == 2
 
     def refresh(self, refresh_token):
         """
         Refresh the access token with the refresh_token
         :param refresh_token:
-        :return: the new access token
+        :return: the new access token or False
         """
-        try:
-            data = {
-                "grant_type": "refresh_token",
-                "refresh_token": refresh_token,
-                "client_id": self.config["client_id"],
-                "client_secret": self.config["client_secret"]
-            }
-            string_data = urllib.parse.urlencode(data).encode("utf-8")
-            token_response = urllib.request.urlopen(self.config["token_endpoint"], string_data, context=self.ctx)
-        except urllib.request.URLError as te:
-            raise te
-        raw_data = token_response.read()
-        encoding = token_response.info().get_content_charset("utf-8")  # JSON default
-        token_response = json.loads(raw_data.decode(encoding))
-        return token_response
+        data = {
+            'grant_type': 'refresh_token',
+            'refresh_token': refresh_token,
+            'client_id': self.config['client_id'],
+            'client_secret': self.config['client_secret']
+        }
+
+        req = requests.get(
+            self.config['token_endpoint'],
+            params=data,
+            verify=self.check_hostname)
+
+        return req.json() if req.status_code // 100 == 2 else False
 
     def get_auth_req_url(self, session):
         """
@@ -91,13 +87,18 @@ class Client:
         :return redirect url for the OAuth code flow
         """
         state = generate_random_string()
-        session["state"] = state
-        request_args = {"scope": self.config["scope"],
-                        "response_type": self.config["response_type"],
-                        "client_id": self.config["client_id"],
-                        "state": state,
-                        "redirect_uri": self.config["redirect_uri"]}
-        login_url = "%s?%s" % (self.config["authorization_endpoint"], urllib.parse.urlencode(request_args))
+        session['state'] = state
+        request_args = {'scope': self.config['scope'],
+                        'response_type': self.config['response_type'],
+                        'client_id': self.config['client_id'],
+                        'state': state,
+                        'redirect_uri': self.config['redirect_uri']}
+
+        login_url = '{}?{}'.format(
+            self.config['authorization_endpoint'],
+            urllib.parse.urlencode(request_args)
+        )
+
         return login_url
 
     def get_token(self, code):
@@ -106,43 +107,40 @@ class Client:
         :param code: The authorization code to use when getting tokens
         :return the json response containing the tokens
         """
-        data = {"client_id": self.config["client_id"],
-                "client_secret": self.config["client_secret"],
-                "code": code,
-                "redirect_uri": self.config["redirect_uri"],
-                "grant_type": "authorization_code"}
-        string_data = urllib.parse.urlencode(data).encode("utf-8")
+        data = {'client_id': self.config['client_id'],
+                'client_secret': self.config['client_secret'],
+                'code': code,
+                'redirect_uri': self.config['redirect_uri'],
+                'grant_type': 'authorization_code'}
+
         # Exchange code for tokens
-        try:
-            token_response = urllib.request.urlopen(self.config["token_endpoint"], string_data, context=self.ctx)
-        except urllib.request.URLError as te:
-            raise te
+        req = requests.get(
+            self.config['token_endpoint'],
+            params=data,
+            verify=self.check_hostname)
 
-        raw_data = token_response.read()
-        encoding = token_response.info().get_content_charset("utf8")  # JSON default
-        token_response = json.loads(raw_data.decode(encoding))
+        return req.json() if req.status_code // 100 == 2 else False
 
-        return token_response
-
-    def get_user_info(self, token, client_name, verify=True):
+    def get_user_info(self, token, client_name=None):
         """
         Request data from userinfo endpoint
         :param token: access_token retrieved from token endpoint
+        :param client_name: name of client asking for authentication
         :return: the json response containing user data
         """
-
         user_info_url = '{}/userinfo?access_token={}'.format(
-            self.config["user_info_endpoint"],
+            self.config['userinfo_endpoint'],
             token
         )
-        # Get user info
-        user_info = requests.get(user_info_url)
 
-        if client_name:
-            if client_name in user_info['clients']:
-                ...
-            else:
-                return False
+        # Get user info
+        user_info = requests.get(
+            user_info_url,
+            verify=self.check_hostname
+        )
+
+        if not client_name not in user_info['clients']:
+            return False
 
         return user_info_url == 200
 
@@ -150,15 +148,16 @@ class Client:
         """
         Make request to logout endpoint
         :type token: id_token retrieved from token endpoint
-        :return: True
+        :return: True or False
         """
-        logout_url = "%s?id_token_hint=%s&post_logout_redirect_uri=%s" % (
-            self.config["logout_endpoint"], token, self.config["redirect_uri"]
-        )
-        print(logout_url)
-        try:
-            urllib.request.urlopen(logout_url, context=self.ctx)
-        except urllib.request.URLError as te:
-            raise te
+        data = {
+            'id_token': token,
+            'post_logout_redirect': self.config['redirect_uri']
+        }
 
-        return True
+        req = requests.get(
+            self.config['logout_endpoint'],
+            params=data,
+            verify=self.check_hostname)
+
+        return req.status_code // 100 == 2
