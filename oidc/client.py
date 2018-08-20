@@ -132,7 +132,7 @@ class Client:
         """
 
         user_info_url = '{}/userinfo?access_token={}'.format(
-            self.config["userinfo_endpoint"],
+            self.config["user_info_endpoint"],
             token
         )
         # Get user info
