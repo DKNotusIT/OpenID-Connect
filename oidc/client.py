@@ -1,4 +1,5 @@
 import json
+import requests
 import ssl
 import urllib.parse
 import urllib.request
@@ -123,31 +124,27 @@ class Client:
 
         return token_response
 
-    def get_user_info(self, token, client_name):
+    def get_user_info(self, token, client_name, verify=True):
         """
         Request data from userinfo endpoint
         :param token: access_token retrieved from token endpoint
         :return: the json response containing user data
         """
-        request_args = {"access_token": token}
-        userinfo_url = "%s?%s" % (self.config["userinfo_endpoint"], urllib.parse.urlencode(request_args))
-        # Get user info
-        try:
-            user_info = urllib.request.urlopen(userinfo_url, context=self.ctx)
-        except urllib.request.URLError as te:
-            raise te
 
-        raw_data = user_info.read()
-        encoding = user_info.info().get_content_charset("utf8")  # JSON default
-        user_info = json.loads(raw_data.decode(encoding))
+        user_info_url = '{}/userinfo?access_token={}'.format(
+            self.config["userinfo_endpoint"],
+            token
+        )
+        # Get user info
+        user_info = requests.get(user_info_url)
 
         if client_name:
             if client_name in user_info['clients']:
                 ...
             else:
-                raise Exception('Invalid Permission')
+                return False
 
-        return user_info
+        return user_info_url == 200
 
     def logout(self, token):
         """

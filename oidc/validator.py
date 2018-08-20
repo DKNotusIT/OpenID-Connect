@@ -4,7 +4,7 @@ from jwkest.jws import JWS
 from jwkest.jwk import KEYS
 from requests import request
 from jwkest import BadSignature
-from .helpers.oidc import base64_urldecode
+from .helpers.oidc import base64_url_decode
 
 
 class JwtValidatorException(Exception):
@@ -24,9 +24,9 @@ class JwtValidator:
         if len(parts) != 3:
             raise BadSignature("Invalid JWT. Only JWS supported.")
 
-        raw_data = base64_urldecode(parts[0])
+        raw_data = base64_url_decode(parts[0])
         header = json.loads(raw_data.decode("utf8"))
-        raw_data = base64_urldecode(parts[1])
+        raw_data = base64_url_decode(parts[1])
         payload = json.loads(raw_data.decode("utf8"))
 
         if "iss" not in payload or iss != payload["iss"]:

@@ -1,4 +1,5 @@
 import logging
+import requests
 import urllib.request as urllib2
 from flask import render_template, session, redirect, request
 from jwkest import BadSignature
@@ -56,10 +57,12 @@ def open_id_connect(service):
             user = None
             if "session_id" in session:
                 user = _session_store.get(session["session_id"])
-            return render_template("index.html",
-                                   server_name=urlparse(_config["authorization_endpoint"]).netloc,
-                                   session=user,
-                                   error=message)
+            return render_template(
+                "index.html",
+                server_name=urlparse(_config["authorization_endpoint"]).netloc,
+                session=user,
+                error=message
+            )
 
     @_app.route("/" + namespace + "/test")
     def home():
@@ -78,9 +81,11 @@ def open_id_connect(service):
                 except Exception:
                     pass
 
-        return render_template("index.html",
-                               server_name=urlparse(_config["authorization_endpoint"]).netloc,
-                               session=user)
+        return render_template(
+            "index.html",
+            server_name=urlparse(_config["authorization_endpoint"]).netloc,
+            session=user
+        )
 
     @_app.route("/" + namespace + "/login")
     def start_code_flow():
