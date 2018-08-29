@@ -134,7 +134,7 @@ class Client:
         :param client_name: name of client asking for authentication
         :return: the json response containing user data
         """
-        user_info_url = '{}/userinfo?access_token={}'.format(
+        user_info_url = '{}?access_token={}'.format(
             self.config['userinfo_endpoint'],
             token
         )
