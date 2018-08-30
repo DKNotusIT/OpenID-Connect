@@ -145,7 +145,8 @@ class Client:
             verify=self.check_hostname
         )
 
-        if not client_name not in user_info.json()['clients']:
+        if (user_info.status_code == 401 or
+                client_name not in user_info.json()['clients']):
             return False
 
         return user_info.status_code == 200
