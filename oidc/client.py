@@ -149,7 +149,7 @@ class Client:
                 client_name not in user_info.json()['clients']):
             raise Exception('HTTP Error 401: Unauthorized')
 
-        return user_info.status_code == 200
+        return user_info if user_info.status_code == 200 else False
 
     def logout(self, token):
         """
