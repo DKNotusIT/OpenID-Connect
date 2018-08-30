@@ -147,7 +147,7 @@ class Client:
 
         if (user_info.status_code == 401 or
                 client_name not in user_info.json()['clients']):
-            return False
+            raise Exception('HTTP Error 401: Unauthorized')
 
         return user_info.status_code == 200
 
