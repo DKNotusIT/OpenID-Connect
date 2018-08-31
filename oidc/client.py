@@ -6,6 +6,7 @@ from .helpers.oidc import generate_random_string
 class Client:
     def __init__(self, config):
         self.config = config
+        self.check_hostname = True
 
         # Allow untrusted connection for testing purpose
         if ('verify_ssl_certificate' in self.config and
