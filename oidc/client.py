@@ -75,9 +75,9 @@ class Client:
             'client_secret': self.config['client_secret']
         }
 
-        req = requests.get(
+        req = requests.post(
             self.config['token_endpoint'],
-            params=data,
+            data=data,
             verify=self.check_hostname
         )
 
