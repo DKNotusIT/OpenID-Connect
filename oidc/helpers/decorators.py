@@ -18,10 +18,10 @@ def open_id_connect_helper(application):
         def id_token_authorized(api_method):
             @wraps(api_method)
             def authorized(*args, **kwargs):
-                id_token = request.headers.get('Authentication')
+                id_token = request.headers.get('Authorization')
 
                 if id_token is None:
-                    abort(400, 'Missing Authentication header')
+                    abort(400, 'Missing Authorization header')
                 try:
                     jwt_validator.validate(
                         id_token,
@@ -41,10 +41,10 @@ def open_id_connect_helper(application):
         def access_token_authorized(api_method):
             @wraps(api_method)
             def authorized(*args, **kwargs):
-                access_token = request.headers.get('Authentication')
+                access_token = request.headers.get('Authorization')
 
                 if access_token is None:
-                    abort(400, 'Missing Authentication header')
+                    abort(400, 'Missing Authorization header')
                 try:
                     application.user_info = oidc_client.get_user_info(
                         access_token,
@@ -52,7 +52,7 @@ def open_id_connect_helper(application):
                     )
                 except Exception as e:
                     application.logger.error(str(e))
-                    return {'message': 'HTTP Error 401: Unauthorized'}, 401
+                    return {'message': 'HTTP Error 401: Authorization'}, 401
                 else:
                     return api_method(*args, **kwargs)
 
