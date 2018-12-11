@@ -46,13 +46,14 @@ def openid_connect_helper(application):
                 if access_token is None:
                     abort(400, 'Missing Authorization header')
                 try:
+                    _, access_token = access_token.split(" ")
                     application.user_info = oidc_client.get_user_info(
                         access_token,
                         application.config['service_name']
                     )
                 except Exception as e:
                     application.logger.error(str(e))
-                    return {'message': 'HTTP Error 401: Authorization'}, 401
+                    return {'message': 'HTTP Error 401: Unauthorized'}, 401
                 else:
                     return api_method(*args, **kwargs)
 
