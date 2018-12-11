@@ -5,7 +5,7 @@ from functools import wraps
 import json
 
 
-def open_id_connect_helper(application):
+def openid_connect_helper(application):
     if application.config['open_id_connect']:
         oidc_config = json.loads(
             open(application.config['open_id_connect_config_path']).read())
